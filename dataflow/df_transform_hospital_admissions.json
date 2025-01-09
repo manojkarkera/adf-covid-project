@@ -54,6 +54,9 @@
 				},
 				{
 					"name": "SortWeekly"
+				},
+				{
+					"name": "SortDaily"
 				}
 			],
 			"scriptLines": [
@@ -154,7 +157,10 @@
 				"     count = sum(value),",
 				"     columnNaming: '$V_$N',",
 				"     lateral: true) ~> PivotDaily",
-				"PivotWeekly sort(asc(ERROR_FUNCTION(''), true)) ~> SortWeekly"
+				"PivotWeekly sort(desc(reported_year_week, true),",
+				"     asc(country, true)) ~> SortWeekly",
+				"PivotDaily sort(desc(reported_date, true),",
+				"     asc(country, true)) ~> SortDaily"
 			]
 		}
 	}
