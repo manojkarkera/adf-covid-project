@@ -988,9 +988,11 @@
 						"     columnNaming: '$V_$N',",
 						"     lateral: true) ~> PivotDaily",
 						"PivotWeekly sort(desc(reported_year_week, true),",
-						"     asc(country, true)) ~> SortWeekly",
+						"     asc(country, true),",
+						"     partitionBy('hash', 1)) ~> SortWeekly",
 						"PivotDaily sort(desc(reported_date, true),",
-						"     asc(country, true)) ~> SortDaily",
+						"     asc(country, true),",
+						"     partitionBy('hash', 1)) ~> SortDaily",
 						"SortWeekly select(mapColumn(",
 						"          country,",
 						"          country_code_2_digit,",
@@ -1019,18 +1021,24 @@
 						"     skipDuplicateMapOutputs: true) ~> SelectDaily",
 						"SelectWeekly sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
+						"     partitionFileNames:['hospital_admissions_weekly.csv'],",
+						"     truncate: true,",
 						"     umask: 0022,",
 						"     preCommands: [],",
 						"     postCommands: [],",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> WeeklySink",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> WeeklySink",
 						"SelectDaily sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
+						"     partitionFileNames:['hospital_admissions_daily.csv'],",
+						"     truncate: true,",
 						"     umask: 0022,",
 						"     preCommands: [],",
 						"     postCommands: [],",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> DailySink"
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> DailySink"
 					]
 				}
 			},
@@ -1090,43 +1098,13 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/tr_ingest')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"runtimeState": "Started",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "pl_ingest_ecdc_data",
-							"type": "PipelineReference"
-						},
-						"parameters": {}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Minute",
-						"interval": 15,
-						"startTime": "2024-12-20T14:48:00",
-						"timeZone": "India Standard Time"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pl_ingest_ecdc_data')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/pl_process_hospital_adminssions_data')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"activities": [
 					{
-						"name": "df1",
+						"name": "df_hospital",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [],
 						"policy": {
@@ -1166,6 +1144,36 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/dataflows/df_transform_hospital_admissions')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/tr_ingest')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_ingest_ecdc_data",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 15,
+						"startTime": "2024-12-20T14:48:00",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_ecdc_data')]"
 			]
 		}
 	]
